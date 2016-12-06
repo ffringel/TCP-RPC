@@ -1,8 +1,9 @@
 %%%-------------------------------------------------------------------
-%%% @author fabu
+%%% @author Blaise Fringel
 %%% @copyright (C) 2016, <COMPANY>
-%%% @doc
-%%%
+%%% @doc This module defines a server process that listens for incoming
+%%% TCP connections and allows the user to execute commands via
+%%% that TCP stream
 %%% @end
 %%% Created : 06. Dec 2016 7:37 AM
 %%%-------------------------------------------------------------------
@@ -12,7 +13,10 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1,
+  start_link/0,
+  get_count/0,
+  stop/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -23,8 +27,9 @@
   code_change/3]).
 
 -define(SERVER, ?MODULE).
+-define(DEFAULT_PORT, 1055).
 
--record(state, {}).
+-record(state, {port, lsock, request_count = 0}).
 
 %%%===================================================================
 %%% API
@@ -39,7 +44,29 @@
 -spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+  start_link(?DEFAULT_PORT).
+
+start_link(Port) ->
+  gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
+
+%%--------------------------------------------------------------------
+%% @doc fetch the number of request made to this server.
+%% @spec get_count() -> {ok, Count}
+%% where
+%%  Count = integer()
+%% @end
+%%--------------------------------------------------------------------
+get_count() ->
+  gen_server:call(?SERVER, get_count).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Stop the server
+%% @spec stop() -> OK
+%% @end
+%%--------------------------------------------------------------------
+stop() ->
+  gen_server:cast(?SERVER, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -59,8 +86,9 @@ start_link() ->
 -spec(init(Args :: term()) ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-init([]) ->
-  {ok, #state{}}.
+init([Port]) ->
+  {ok, LSock} = gen_tcp:listen(Port, [{active, true}]),
+     {ok, #state{port = Port, lsock = LSock}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -77,8 +105,8 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call(_Request, _From, State) ->
-  {reply, ok, State}.
+handle_call(get_count, _From, State) ->
+  {reply, {ok, State#state.request_count}, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -91,8 +119,8 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast(_Request, State) ->
-  {noreply, State}.
+handle_cast(stop, State) ->
+  {stop, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -108,7 +136,22 @@ handle_cast(_Request, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_info(_Info, State) ->
+handle_info({tcp, Socket, RawData}, State) ->
+  RequestCount = State#state.request_count,
+  try
+      MFA = re:replace(RawData, "\r\n$", "", [{return, list}]),
+          {match, [M, F, A]} =
+              re:run(MFA, "(.*):(.*)\s*\\((.*)\s*\\)\s*.\s*$",
+              [{capture, [1, 2, 3], list}, ungreedy]),
+      Result = apply(list_to_atom(M), list_to_atom(F), args_to_terms(A)),
+      gen_tcp:send(Socket, io_lib:fwrite("~p~n", [Result]))
+  catch
+      _C:E ->
+            gen_tcp:send(Socket, io_lib:fwrite("~p~n", [E]))
+  end,
+  {noreply, State#state{request_count = RequestCount + 1}};
+handle_info(timeout, #state{lsock = LSock} = State) ->
+  {ok, _Sock} = gen_tcp:accept(LSock),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -144,3 +187,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+args_to_terms([]) ->
+  [];
+args_to_terms(RawArgs) ->
+  {ok, Toks, _Line} = erl_scan:string("[" ++ RawArgs ++ "]. ", 1),
+  {ok, Args} = erl_parse:parse_term(Toks),
+  Args.
