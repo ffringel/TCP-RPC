@@ -7,7 +7,7 @@
 %%% Created : 06. Dec 2016 7:37 AM
 %%%-------------------------------------------------------------------
 -module(tr_server).
--author("fabu").
+-author("Blaise Fringel").
 
 -behaviour(gen_server).
 
