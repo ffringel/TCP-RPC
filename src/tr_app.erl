@@ -39,8 +39,8 @@ start(_Type, _StartArgs) ->
   case tr_sup:start_link() of
     {ok, Pid} ->
       {ok, Pid};
-    Error ->
-      Error
+    Other ->
+      {error, Other}
   end.
 
 %%--------------------------------------------------------------------

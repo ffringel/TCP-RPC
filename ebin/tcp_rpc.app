@@ -8,15 +8,14 @@
 %%%-------------------------------------------------------------------
 {application, tcp_rpc, [
   {description, "RPC server"},
-  {vsn, "0.1"},
-  {modules, [tr_server,
+  {vsn, "0.1.0"},
+  {modules, [tr_app,
     tr_sup,
-    tr_app]},
-  {registered, [tr_sup]},
+    tr_server]},
+  {registered, [tr_sup, tr_server]},
   {applications, [
     kernel,
     stdlib
   ]},
-  {mod, {tcp_rpc, []}},
-  {env, []}
+  {mod, {tcp_app, []}}
 ]}.

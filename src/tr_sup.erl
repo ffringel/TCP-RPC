@@ -56,10 +56,11 @@ start_link() ->
   ignore |
   {error, Reason :: term()}).
 init([]) ->
-  Server = {tr_server, {
-    tr_server, start_link, []},
+  Server = {tr_server, {tr_server, start_link, []},
     permanent, 2000, worker, [tr_server]},
-  {ok, {{one_for_one, 0, 1}, [Server]}}.
+  Children = [Server],
+  RestartStrategy = {one_for_one, 0, 1},
+  {ok, {RestartStrategy, Children}}.
 
 %%%===================================================================
 %%% Internal functions
