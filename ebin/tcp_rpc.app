@@ -17,5 +17,5 @@
     kernel,
     stdlib
   ]},
-  {mod, {tcp_app, []}}
+  {mod, {tr_app, []}}
 ]}.
