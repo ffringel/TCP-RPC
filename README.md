@@ -37,4 +37,5 @@ lists:reverse([1,2,3]).
 init:stop().
 
 ok
+
 Connection closed by foreign host.
