@@ -8,6 +8,7 @@ To compile the erl files in the src directory,
 cd ebin
 erlc ../src/*.erl
 
+
 Once you do that, start a shell in the ebin directory and run the 
 start command exported by the application behaviour
 
@@ -20,11 +21,19 @@ ok
 
 Open another terminal and run a telnet session
 fabu@fabu:~$ telnet localhost 1055
+
 Trying 127.0.0.1...
+
 Connected to localhost.
+
 Escape character is '^]'.
+
 lists:reverse([1,2,3]).
+
 [3,2,1]
+
 init:stop().
+
 ok
+
 Connection closed by foreign host.
