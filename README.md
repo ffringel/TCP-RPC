@@ -3,6 +3,7 @@ A Basic RPC Server that listens for TCP connections and allows the user to execu
 that TCP stream
 
 USAGE
+
 To compile the erl files in the src directory,
 
 cd ebin
