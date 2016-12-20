@@ -18,7 +18,6 @@ Eshell V8.1  (abort with ^G)
 1> application:start(tcp_rpc).
 ok
 
-
 Open another terminal and run a telnet session
 fabu@fabu:~$ telnet localhost 1055
 
